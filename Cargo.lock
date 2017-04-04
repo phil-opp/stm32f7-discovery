@@ -9,6 +9,7 @@ dependencies = [
  "cortex-m 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "embedded 0.3.0 (git+https://github.com/embed-rs/embedded-rs.git)",
  "embedded_stm32f7 0.1.0 (git+https://github.com/embed-rs/embedded_stm32f7.git)",
+ "font-rs 0.0.2 (git+https://github.com/phil-opp/font-rs.git?branch=no-std)",
  "net 0.1.0 (git+https://github.com/embed-rs/net.git)",
  "r0 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -99,6 +100,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "font-rs"
+version = "0.0.2"
+source = "git+https://github.com/phil-opp/font-rs.git?branch=no-std#c57f8be658c4e3f1a93c96cf21202e38674da809"
+
+[[package]]
 name = "linked_list_allocator"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -166,6 +172,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum cortex-m 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "f636846f87391b548e55be42a3f787c76348288f8716486a7e184004b745c62d"
 "checksum embedded 0.3.0 (git+https://github.com/embed-rs/embedded-rs.git)" = "<none>"
 "checksum embedded_stm32f7 0.1.0 (git+https://github.com/embed-rs/embedded_stm32f7.git)" = "<none>"
+"checksum font-rs 0.0.2 (git+https://github.com/phil-opp/font-rs.git?branch=no-std)" = "<none>"
 "checksum linked_list_allocator 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ad1399b725177d144e05de0fbcc522de2c21ac07001d3efe916ca408980a04ee"
 "checksum net 0.1.0 (git+https://github.com/embed-rs/net.git)" = "<none>"
 "checksum nodrop 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "52cd74cd09beba596430cc6e3091b74007169a56246e1262f0ba451ea95117b2"
