@@ -14,9 +14,15 @@ extern crate r0;
 extern crate alloc;
 #[macro_use]
 extern crate collections;
+extern crate splines;
 
 // hardware register structs with accessor methods
 use stm32f7::{system_clock, sdram, lcd, i2c, audio, touch, board, ethernet, embedded};
+use stm32f7::lcd::Color;
+use splines::ControlPoly;
+use splines::renderer::{AABB, Renderer};
+use splines::renderer::coordinates::{Coord2D, Pixel16};
+
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -51,8 +57,8 @@ pub unsafe extern "C" fn reset() -> ! {
     main(board::hw());
 }
 
-                    // WORKAROUND: rust compiler will inline & reorder fp instructions into
-#[inline(never)]    //             reset() before the FPU is initialized
+// WORKAROUND: rust compiler will inline & reorder fp instructions into
+#[inline(never)] //             reset() before the FPU is initialized
 fn main(hw: board::Hardware) -> ! {
     use embedded::interfaces::gpio::{self, Gpio};
 
@@ -166,13 +172,57 @@ fn main(hw: board::Hardware) -> ! {
         println!("ethernet init failed: {:?}", e);
     }
 
-    println!("Hello World!\n      bla\n");
-    println!("{:#?}", &[1213,20123,32345,426,53456,586754,61223]);
-    println!("\n\nLorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. ");
+    println!("Hello World!\n");
 
+    // splines:
+    // AABB
+    let offset = 10;
+    let mut aabb = AABB {
+        min: Pixel16 {
+            x: offset,
+            y: offset,
+        },
+        max: Pixel16 {
+            x: 479 - offset,
+            y: 271 - offset,
+        },
+    };
+    // create control polygon
+    let mut ctrl: ControlPoly = ControlPoly {
+        data: vec![Coord2D { x: 0f32, y: 1f32 },
+                   Coord2D { x: 1f32, y: 0f32 },
+                   Coord2D { x: 1.5f32, y: 0f32 },
+                   Coord2D { x: 2.5f32, y: 1f32 }],
+        closed: false, // not yet used
+        line_thickness: 10, // not yet used
+    };
+    ctrl.data = aabb.fit_in_aabb(ctrl.data.as_slice());
+    // approximate spline
+    let draw = ctrl.eval_with_casteljau();
+    // set up renderer
+    {
+        let func = |x: u16, y: u16, c: u32| {
+            layer_1.print_point_color_at(x as usize,
+                                         y as usize,
+                                         Color {
+                                             red: 0xFF,
+                                             green: 0x00,
+                                             blue: 0x00,
+                                             alpha: 0xFF,
+                                         })
+        };
+        let func2 = |x: u16, y: u16, c: u32| print!("({},{}), ", x, y);
+        let mut r_draw = Renderer { pixel_col_fn: func };
+        let mut r_print = Renderer { pixel_col_fn: func2 };
+        // plot data into given AABB.
+        //r_print.draw_lines(aabb, draw.data.clone());
+        r_draw.draw_lines(aabb, ctrl.data);
+        r_draw.draw_lines(aabb, draw.data.clone());
+        //println!("{:?}", draw.data.clone());
+    }
     touch::check_family_id(&mut i2c_3).unwrap();
 
-    let mut audio_writer = layer_1.audio_writer();
+    //let mut audio_writer = layer_1.audio_writer();
     let mut last_led_toggle = system_clock::ticks();
     let mut last_color_change = system_clock::ticks();
     let mut button_pressed_old = false;
@@ -201,12 +251,14 @@ fn main(hw: board::Hardware) -> ! {
         while !sai_2.bsr.read().freq() {} // fifo_request_flag
         let data1 = sai_2.bdr.read().data();
 
-        audio_writer.set_next_col(data0, data1);
+        //audio_writer.set_next_col(data0, data1);
 
         // poll for new touch data
-        for touch in &touch::touches(&mut i2c_3).unwrap() {
-            audio_writer.layer().print_point_at(touch.x as usize, touch.y as usize);
-        }
+        //for touch in &touch::touches(&mut i2c_3).unwrap() {
+        //    audio_writer
+        //        .layer()
+        //        .print_point_at(touch.x as usize, touch.y as usize);
+        //}
 
         // handle new ethernet packets
         if let Ok(ref mut eth_device) = eth_device {
