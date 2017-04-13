@@ -176,49 +176,71 @@ fn main(hw: board::Hardware) -> ! {
 
     // splines:
     // AABB
-    let offset = 10;
-    let mut aabb = AABB {
-        min: Pixel16 {
-            x: offset,
-            y: offset,
-        },
-        max: Pixel16 {
-            x: 479 - offset,
-            y: 271 - offset,
-        },
+    let mut aabb_spk = AABB {
+        min: Pixel16 { x: 10, y: 10 },
+        max: Pixel16 { x: 120, y: 120 },
+    };
+    let mut aabb_line = AABB {
+        min: Pixel16 { x: 80, y: 80 },
+        max: Pixel16 { x: 470, y: 260 },
     };
     // create control polygon
-    let mut ctrl: ControlPoly = ControlPoly {
+    let mut ctrl_line: ControlPoly = ControlPoly {
         data: vec![Coord2D { x: 0f32, y: 1f32 },
                    Coord2D { x: 1f32, y: 0f32 },
-                   Coord2D { x: 1.5f32, y: 0f32 },
-                   Coord2D { x: 2.5f32, y: 1f32 }],
+                   Coord2D { x: 2f32, y: 0.9f32 },
+                   Coord2D { x: 3f32, y: 0f32 }],
         closed: false, // not yet used
         line_thickness: 10, // not yet used
     };
-    ctrl.data = aabb.fit_in_aabb(ctrl.data.as_slice());
-    // approximate spline
-    let draw = ctrl.eval_with_casteljau();
+    ctrl_line.data = aabb_line.fit_in_aabb(ctrl_line.data.as_slice());
+    let mut ctrl_spk = ControlPoly {
+        data: vec![Coord2D { x: 1f32, y: 2f32 },
+                   Coord2D { x: 0.5f32, y: 3f32 },
+                   Coord2D {
+                       x: 0.6f32,
+                       y: 0.8f32,
+                   },
+                   Coord2D { x: 2f32, y: 2.1f32 },
+                   Coord2D {
+                       x: 2.2f32,
+                       y: 2.2f32,
+                   },
+                   Coord2D {
+                       x: 5.5f32,
+                       y: 2.2f32,
+                   },
+                   Coord2D { x: 5.5f32, y: 0f32 },
+                   Coord2D { x: 0f32, y: 0f32 },
+                   Coord2D { x: 0f32, y: 2f32 },
+                   Coord2D { x: 1f32, y: 2f32 }],
+        closed: false,
+        line_thickness: 10,
+    };
+    ctrl_spk.data = aabb_spk.fit_in_aabb(ctrl_spk.data.as_slice());
+    // approximate splines
+    let draw_spk = ctrl_spk.eval_spline_uniform((aabb_spk.max.x - aabb_spk.min.x) / 10);
+    let draw_line = ctrl_line.eval_spline_uniform((aabb_line.max.x - aabb_line.min.x) / 10);
     // set up renderer
     {
-        let func = |x: u16, y: u16, c: u32| {
+        let func = |x: u16, y: u16, c: f32| {
             layer_1.print_point_color_at(x as usize,
                                          y as usize,
                                          Color {
                                              red: 0xFF,
                                              green: 0x00,
                                              blue: 0x00,
-                                             alpha: 0xFF,
+                                             alpha: (c * (0xFF as u32) as f32) as u8,
                                          })
         };
-        let func2 = |x: u16, y: u16, c: u32| print!("({},{}), ", x, y);
+        //let func2 = |x: u16, y: u16, c: u32| print!("({},{}), ", x, y);
         let mut r_draw = Renderer { pixel_col_fn: func };
-        let mut r_print = Renderer { pixel_col_fn: func2 };
+        //let mut r_print = Renderer { pixel_col_fn: func2 };
         // plot data into given AABB.
         //r_print.draw_lines(aabb, draw.data.clone());
-        r_draw.draw_lines(aabb, ctrl.data);
-        r_draw.draw_lines(aabb, draw.data.clone());
-        //println!("{:?}", draw.data.clone());
+        r_draw.draw_lines(aabb_line, ctrl_line.data);
+        //r_draw.draw_lines(aabb_spk, draw_spk);
+        r_draw.draw_lines(aabb_spk, draw_line);
     }
     touch::check_family_id(&mut i2c_3).unwrap();
 
@@ -238,12 +260,12 @@ fn main(hw: board::Hardware) -> ! {
         }
 
         let button_pressed = button.get();
-        if (button_pressed && !button_pressed_old) || ticks - last_color_change >= 1000 {
-            // choose a new background color
-            let new_color = ((system_clock::ticks() as u32).wrapping_mul(19801)) % 0x1000000;
-            lcd.set_background_color(lcd::Color::from_hex(new_color));
-            last_color_change = ticks;
-        }
+        //if (button_pressed && !button_pressed_old) || ticks - last_color_change >= 1000 {
+        //    // choose a new background color
+        //    let new_color = ((system_clock::ticks() as u32).wrapping_mul(19801)) % 0x1000000;
+        //    lcd.set_background_color(lcd::Color::from_hex(new_color));
+        //    last_color_change = ticks;
+        //}
 
         // poll for new audio data
         while !sai_2.bsr.read().freq() {} // fifo_request_flag
